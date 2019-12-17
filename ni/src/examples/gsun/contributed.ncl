@@ -23377,5 +23377,49 @@ begin
 ;;return([/ocnHeat,ocnRTZ,HS/])   ; return list variable containing 3 variables
 
 end
+;--------------------------------
+undef("simpson_ne")
+function simpson_ne(x[*]:numeric, y[*]:numeric)
+;
+; Simpson Integration Rule for unevenly sampled data
+; .  Missing values (_FillValue) not allowed
+;
+local N, ny, n, dx, ans, ddx 
+begin
+  N  = dimsizes(x)
+  ny = dimsizes(y)
+  if (N.ne.ny) then
+      print("simpson_ne: FATAL: x and y are different sizes: nx="+N+"  ny="+ny)
+      exit
+  end if
+  if (any(ismissing(x)) .or. any(ismissing(y))) then
+      print("simpson_ne: FATAL: Missing values not allowed.")
+      exit
+  end if
+  
+  dx  = x(1:)-x(0:N-2)         ; sampling intervals
+  ans = 0.0
+  do n=1,N-2,2
+     ddx = dx(n)+dx(n-1)
+     ans = ans + y(n)  *(dx(n)^3 + dx(n-1)^3   + 3*dx(n)*dx(n-1)*ddx) \  ; center (n)
+                        /(6*dx(n)*dx(n-1))
+     ans = ans + y(n-1)*(2*dx(n-1)^3 - dx(n)^3 + 3*dx(n)*dx(n-1)^2)   \  ; left (n-1)
+                        /(6*dx(n-1)*ddx)
+     ans = ans + y(n+1)*(2*dx(n)^3 - dx(n-1)^3 + 3*dx(n-1)*dx(n)^2)   \  ; right (n+1)
+                        /(6*dx(n)*ddx )
+  end do
+
+  if (N%2.ne.0) then   ; odd #  subintervals
+      N   = N-1
+      ans = ans + y(N)*(2*dx(N-1)^2 + 3*dx(N-2)*dx(N-1)) \
+                      /(6*(dx(N-2)+dx(N-1) ) )
+      ans = ans + y(N-1)*(dx(N-1)^2 + 3*dx(N-1)*dx(N-2)) \
+                       /(6*dx(N-2) )
+      ans = ans - y(N-2)*dx(N-1)^3                       \  ; note - sign
+                       /(6*dx(N-2)*(dx(N-2)+dx(N-1)) )
+  end if
+
+  return(ans)
+end
 
 
